@@ -1,0 +1,28 @@
+# Railway (Nixpacks) build configuration for this Laravel app.
+#
+# Only PHP is needed here — none of the routed views (everything except the
+# unused default `welcome.blade.php`) depend on a Vite/npm build; they load
+# Bootstrap and FontAwesome from a CDN. So we skip the Node phase entirely,
+# which avoids an unnecessary build step and a whole class of potential
+# "npm build failed" deploy errors.
+providers = ["php"]
+
+[variables]
+# Laravel's public entry point lives in public/, not the project root.
+NIXPACKS_PHP_ROOT_DIR = "/app/public"
+
+[phases.install]
+cmds = [
+  "composer install --no-dev --optimize-autoloader --no-interaction"
+]
+
+# Runs on every container start (not just the first deploy). All of these
+# commands are idempotent/safe to repeat:
+#  - migrate --force: every migration below checks Schema::hasTable(...)
+#    first, so re-running is a no-op once tables exist.
+#  - db:seed: AdminUserSeeder uses updateOrCreate, TermSeeder checks for an
+#    existing row before inserting — neither creates duplicates.
+#  - storage:link: recreates the public/storage symlink, which is lost on
+#    every fresh container since Railway's filesystem is ephemeral.
+[start]
+cmd = "php artisan migrate --force && php artisan db:seed --class=AdminUserSeeder --force && php artisan db:seed --class=TermSeeder --force && php artisan storage:link && php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan serve --host=0.0.0.0 --port=$PORT"

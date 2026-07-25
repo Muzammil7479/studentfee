@@ -11,6 +11,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Railway (like most PaaS hosts) puts the app behind a reverse
+        // proxy that terminates TLS. Without this, Laravel can't reliably
+        // tell the request was HTTPS or see the real client IP, which
+        // affects secure-cookie handling and anything that inspects
+        // $request->ip() or $request->isSecure(). Trusting all proxies is
+        // safe here because Railway's network sits in front of every
+        // request the app receives; the app is never reachable directly.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,

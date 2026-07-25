@@ -17,13 +17,22 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // The demo "Test User" relies on fakerphp/faker, which is a
+        // require-dev package. Production deploys typically run
+        // `composer install --no-dev`, which would make this call fatal-error
+        // and abort the whole seed run (including the real admin/user
+        // accounts below). Guarding it keeps local `php artisan db:seed`
+        // behavior identical while making production seeding safe.
+        if (class_exists(\Faker\Factory::class)) {
+            User::factory()->create([
+                'name' => 'Test User',
+                'email' => 'test@example.com',
+            ]);
+        }
 
         $this->call([
             AdminUserSeeder::class,
+            TermSeeder::class,
         ]);
     }
 }
